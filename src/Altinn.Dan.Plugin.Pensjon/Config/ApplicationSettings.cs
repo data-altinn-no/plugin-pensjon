@@ -1,7 +1,7 @@
 using System;
 using System.Security.Cryptography.X509Certificates;
 using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
+using Azure.Security.KeyVault.Certificates;
 
 namespace Altinn.Dan.Plugin.Pensjon.Config
 {
@@ -20,9 +20,9 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
             {
                 if (_cert == null)
                 {
-                    var secretClient = new SecretClient(new Uri($"https://{KeyVaultName}.vault.azure.net/"), new DefaultAzureCredential());
-                    var keyVaultSecret = secretClient.GetSecretAsync(CertificateName).Result.Value;
-                    _cert = new X509Certificate2(Convert.FromBase64String(keyVaultSecret.Value));
+                    var certificateClient = new CertificateClient(new Uri($"https://{KeyVaultName}.vault.azure.net/"), new DefaultAzureCredential());
+                    var keyVaultCertificateWithPolicy = certificateClient.GetCertificate(CertificateName).Value;
+                    _cert = new X509Certificate2(keyVaultCertificateWithPolicy.Cer);
                 }
                 return _cert;
             }
