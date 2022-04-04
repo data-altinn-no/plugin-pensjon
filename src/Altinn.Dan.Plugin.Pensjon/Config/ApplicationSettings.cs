@@ -1,7 +1,7 @@
-using Microsoft.Azure.KeyVault;
-using Microsoft.Azure.Services.AppAuthentication;
 using System;
 using System.Security.Cryptography.X509Certificates;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 
 namespace Altinn.Dan.Plugin.Pensjon.Config
 {
@@ -12,7 +12,7 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
         public TimeSpan BreakerRetryWaitTime { get; set; }
         public string NorskPensjonUrl { get; set; }
         public string KeyVaultName { get; set; }
-        public string CertificateName { get; set; }   
+        public string CertificateName { get; set; }
 
         public X509Certificate2 Certificate
         {
@@ -20,12 +20,11 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
             {
                 if (_cert == null)
                 {
-                    var keyVaultClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(new AzureServiceTokenProvider().KeyVaultTokenCallback));
-                    var secretBundle = keyVaultClient.GetSecretAsync(KeyVaultName, CertificateName).Result;
-                    _cert = new X509Certificate2(Convert.FromBase64String(secretBundle.Value));
-                    return _cert;
-                } else
-                    return _cert;
+                    var secretClient = new SecretClient(new Uri($"https://{KeyVaultName}.vault.azure.net/"), new DefaultAzureCredential());
+                    var keyVaultSecret = secretClient.GetSecretAsync(CertificateName).Result.Value;
+                    _cert = new X509Certificate2(Convert.FromBase64String(keyVaultSecret.Value));
+                }
+                return _cert;
             }
 
             set
