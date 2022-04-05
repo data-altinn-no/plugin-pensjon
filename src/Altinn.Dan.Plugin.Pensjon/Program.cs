@@ -1,18 +1,14 @@
-using System;
+using System.Collections.Generic;
 using System.Net.Http;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Pensjon.Config;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Polly;
-using Polly.Caching.Distributed;
-using Polly.Extensions.Http;
-using Polly.Registry;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 
 namespace Altinn.Dan.Plugin.Pensjon
 {
@@ -38,7 +34,7 @@ namespace Altinn.Dan.Plugin.Pensjon
                     services.AddHttpClient("ECHttpClient", client =>
                         {
                             client.DefaultRequestHeaders.Add("Accept", "application/json");
-                        })                       
+                        })
                         .ConfigurePrimaryHttpMessageHandler(() =>
                         {
                             var handler = new HttpClientHandler();
@@ -47,12 +43,12 @@ namespace Altinn.Dan.Plugin.Pensjon
                             return handler;
                         });
 
-                    services.Configure<JsonSerializerOptions>(options =>
+                    JsonConvert.DefaultSettings = () => new JsonSerializerSettings
                     {
-                        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-                        options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-                        options.Converters.Add(new JsonStringEnumConverter());
-                    });
+                        DefaultValueHandling = DefaultValueHandling.Ignore,
+                        ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                        Converters = new List<JsonConverter>() { new StringEnumConverter() }
+                    };
                 })
                 .Build();
 

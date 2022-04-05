@@ -34,7 +34,8 @@ namespace Altinn.Dan.Plugin.Pensjon
 
         [Function("NorskPensjon")]
         public async Task<HttpResponseData> GetNorskPensjon(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequestData req, FunctionContext context)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequestData req,
+            FunctionContext context)
         {
             _logger = context.GetLogger(context.FunctionDefinition.Name);
             _logger.LogInformation("Running func 'NorskPensjon'");
@@ -53,12 +54,12 @@ namespace Altinn.Dan.Plugin.Pensjon
             var content = await MakeRequest<NorskPensjonResponse>(_settings.NorskPensjonUrl, evidenceHarvesterRequest.SubjectParty);
 
             var ecb = new EvidenceBuilder(new Metadata(), "NorskPensjon");
-            ecb.AddEvidenceValue($"default", JsonConvert.SerializeObject(content), Metadata.SOURCE, false);            
-            
+            ecb.AddEvidenceValue($"default", JsonConvert.SerializeObject(content), Metadata.SOURCE, false);
+
             return ecb.GetEvidenceValues();
         }
 
-        private async Task<T> MakeRequest<T>(string target, Party subject) where T: new()
+        private async Task<T> MakeRequest<T>(string target, Party subject) where T : new()
         {
             HttpResponseMessage result = null;
             var requestBody = new NorskPensjonRequest();
@@ -70,42 +71,57 @@ namespace Altinn.Dan.Plugin.Pensjon
                 var request = new HttpRequestMessage(HttpMethod.Post, target);
                 request.Content = new StringContent(requestBody.ToString());
                 result = await _client.SendAsync(request);
+                switch (result.StatusCode)
+                {
+                    case HttpStatusCode.OK:
+                    {
+                        try
+                        {
+                            response = JsonConvert.DeserializeObject<T>(await result.Content.ReadAsStringAsync());
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError($"Could not deserialize response: {ex.Message}");
+
+                            throw new EvidenceSourcePermanentServerException(Metadata.ERROR_CCR_UPSTREAM_ERROR, "Could not deserialize response: " + ex.Message);
+                        }
+
+                        if (response == null)
+                        {
+                            throw new EvidenceSourcePermanentServerException(Metadata.ERROR_CCR_UPSTREAM_ERROR, "Did not understand the data model returned from upstream source");
+                        }
+
+                        return response;
+                    }
+                    case HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden:
+                    {
+                        _logger.LogError($"Authentication failed for Norsk Pensjon for {subject.GetAsString()}");
+
+                        throw new EvidenceSourcePermanentClientException(Metadata.ERROR_ORGANIZATION_NOT_FOUND, $"Authentication failed ({(int)result.StatusCode})");
+                    }
+                    case HttpStatusCode.InternalServerError:
+                    {
+                        _logger.LogError($"Call to Norsk Pensjon failed (500 - internal server error)");
+
+                        throw new EvidenceSourceTransientException(Metadata.ERROR_CCR_UPSTREAM_ERROR);
+                    }
+                    default:
+                    {
+                        _logger.LogError($"Unexpected status code from external API ({(int)result.StatusCode} - {result.StatusCode})");
+
+                        throw new EvidenceSourcePermanentClientException(Metadata.ERROR_CCR_UPSTREAM_ERROR,
+                            $"External API call to Norsk Pensjon failed ({(int)result.StatusCode} - {result.StatusCode})");
+                    }
+                }
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex.Message);
+
                 throw new EvidenceSourcePermanentServerException(Metadata.ERROR_CCR_UPSTREAM_ERROR, null, ex);
             }
-
-            if (result.StatusCode == HttpStatusCode.NotFound)
-            {
-                throw new EvidenceSourcePermanentClientException(Metadata.ERROR_ORGANIZATION_NOT_FOUND, $"{subject.GetAsString()} could not be found");
-            }
-
-            if (result.StatusCode == HttpStatusCode.Forbidden)
-            {
-                _logger.LogError($"Authentication failed for norsk pensjon for {subject.GetAsString()}");
-                throw new EvidenceSourcePermanentClientException(Metadata.ERROR_ORGANIZATION_NOT_FOUND, $"Authentication failed");               
-            }
-
-            try
-            {
-                response = JsonConvert.DeserializeObject<T>(await result.Content.ReadAsStringAsync());
-            }
-            catch (Exception ex)
-            {
-                throw new EvidenceSourcePermanentServerException(Metadata.ERROR_CCR_UPSTREAM_ERROR, "Could not deserialize response: " + ex.Message);
-            }
-
-            if (response == null)
-            {
-                throw new EvidenceSourcePermanentServerException(Metadata.ERROR_CCR_UPSTREAM_ERROR,
-                    "Did not understand the data model returned from upstream source");
-            }
-
-            return response;
         }
-        
+
         [Function(Constants.EvidenceSourceMetadataFunctionName)]
         public async Task<HttpResponseData> GetMetadata(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequestData req,
