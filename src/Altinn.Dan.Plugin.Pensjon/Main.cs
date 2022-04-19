@@ -95,7 +95,7 @@ namespace Altinn.Dan.Plugin.Pensjon
                     }
                     case HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden:
                     {
-                        _logger.LogError($"Authentication failed for Norsk Pensjon for {subject.GetAsString()}");
+                        _logger.LogError($"Authentication failed for Norsk Pensjon for {subject.GetAsString()} - {result.Content}");
 
                         throw new EvidenceSourcePermanentClientException(Metadata.ERROR_ORGANIZATION_NOT_FOUND, $"Authentication failed ({(int)result.StatusCode})");
                     }
