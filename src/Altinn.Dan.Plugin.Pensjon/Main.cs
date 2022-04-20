@@ -53,21 +53,19 @@ namespace Altinn.Dan.Plugin.Pensjon
 
         private async Task<List<EvidenceValue>> GetEvidenceValuesPensjon(EvidenceHarvesterRequest evidenceHarvesterRequest)
         {
-            var content = await MakeRequest<NorskPensjonResponse>(_settings.NorskPensjonUrl, evidenceHarvesterRequest.SubjectParty);
+            var content = await MakeRequest(_settings.NorskPensjonUrl, evidenceHarvesterRequest.SubjectParty);
 
             var ecb = new EvidenceBuilder(new Metadata(), "NorskPensjon");
-            ecb.AddEvidenceValue($"default", JsonConvert.SerializeObject(content), Metadata.SOURCE, false);
+            ecb.AddEvidenceValue($"default", content, Metadata.SOURCE, false);
 
             return ecb.GetEvidenceValues();
         }
 
-        private async Task<T> MakeRequest<T>(string target, Party subject) where T : new()
+        private async Task<string> MakeRequest(string target, Party subject) 
         {
             HttpResponseMessage result = null;
             var requestBody = new NorskPensjonRequest();
             requestBody.Fodselsnummer = subject.NorwegianSocialSecurityNumber;
-            T response = default(T);
-
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Post, target);
@@ -78,23 +76,7 @@ namespace Altinn.Dan.Plugin.Pensjon
                 {
                     case HttpStatusCode.OK:
                     {
-                        try
-                        {
-                            response = JsonConvert.DeserializeObject<T>(await result.Content.ReadAsStringAsync());
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError($"Could not deserialize response: {ex.Message}");
-
-                            throw new EvidenceSourcePermanentServerException(Metadata.ERROR_CCR_UPSTREAM_ERROR, "Could not deserialize response: " + ex.Message);
-                        }
-
-                        if (response == null)
-                        {
-                            throw new EvidenceSourcePermanentServerException(Metadata.ERROR_CCR_UPSTREAM_ERROR, "Did not understand the data model returned from upstream source");
-                        }
-
-                        return response;
+                        return await result.Content.ReadAsStringAsync();
                     }
                     case HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden:
                     {

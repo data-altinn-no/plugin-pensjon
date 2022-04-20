@@ -39,7 +39,7 @@ namespace Altinn.Dan.Plugin.Pensjon
                         {
                             EvidenceValueName = "default",
                             ValueType = EvidenceValueType.JsonSchema,
-                            JsonSchemaDefintion = JsonSchema.FromType<NorskPensjonResponse>().ToJson(Newtonsoft.Json.Formatting.Indented)
+                            JsonSchemaDefintion = null
                         },
                     }
                 }
