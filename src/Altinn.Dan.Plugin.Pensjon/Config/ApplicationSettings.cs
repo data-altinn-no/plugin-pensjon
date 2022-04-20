@@ -23,7 +23,7 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
                     var secretClient = new SecretClient(new Uri($"https://{KeyVaultName}.vault.azure.net/"),
                         new DefaultAzureCredential());
                     var certWithPrivateKey = secretClient.GetSecret(CertificateName).Value;
-                    _cert = new X509Certificate2(Convert.FromBase64String(certWithPrivateKey.Value));
+                    _cert = new X509Certificate2(Convert.FromBase64String(certWithPrivateKey.Value), string.Empty, X509KeyStorageFlags.MachineKeySet);
                 }
                 return _cert;
             }
