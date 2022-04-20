@@ -34,7 +34,6 @@ namespace Altinn.Dan.Plugin.Pensjon
                     services.AddHttpClient("ECHttpClient", client =>
                         {
                             client.DefaultRequestHeaders.Add("Accept", "application/json");
-                            client.DefaultRequestHeaders.Add("Content-Type", "application/json");
                         })
                         .ConfigurePrimaryHttpMessageHandler(() =>
                         {

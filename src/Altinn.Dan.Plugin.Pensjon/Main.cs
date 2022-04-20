@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text;
 using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Pensjon.Config;
 using Altinn.Dan.Plugin.Pensjon.Models;
@@ -69,7 +71,8 @@ namespace Altinn.Dan.Plugin.Pensjon
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Post, target);
-                request.Content = new StringContent(requestBody.ToString());
+                request.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8,
+                    "application/json");
                 result = await _client.SendAsync(request);
                 switch (result.StatusCode)
                 {
