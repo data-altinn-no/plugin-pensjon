@@ -1,24 +1,21 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text;
-using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Pensjon.Config;
 using Altinn.Dan.Plugin.Pensjon.Models;
 using Azure.Core.Serialization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nadobe;
-using Nadobe.Common.Exceptions;
-using Nadobe.Common.Models;
-using Nadobe.Common.Util;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using Dan.Common;
+using Dan.Common.Exceptions;
+using Dan.Common.Models;
+using Dan.Common.Util;
 
 namespace Altinn.Dan.Plugin.Pensjon
 {
@@ -44,11 +41,7 @@ namespace Altinn.Dan.Plugin.Pensjon
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
 
-            var actionResult = await EvidenceSourceResponse.CreateResponse(null, () => GetEvidenceValuesPensjon(evidenceHarvesterRequest)) as ObjectResult;
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(actionResult?.Value);
-
-            return response;
+            return await EvidenceSourceResponse.CreateResponse(null, () => GetEvidenceValuesPensjon(evidenceHarvesterRequest));
         }
 
         private async Task<List<EvidenceValue>> GetEvidenceValuesPensjon(EvidenceHarvesterRequest evidenceHarvesterRequest)

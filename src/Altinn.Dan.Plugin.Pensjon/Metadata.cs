@@ -1,9 +1,7 @@
 using System.Collections.Generic;
-using Altinn.Dan.Plugin.Pensjon.Models;
-using Nadobe.Common.Interfaces;
-using Nadobe.Common.Models;
-using Nadobe.Common.Models.Enums;
-using NJsonSchema;
+using Dan.Common.Enums;
+using Dan.Common.Interfaces;
+using Dan.Common.Models;
 
 namespace Altinn.Dan.Plugin.Pensjon
 {
