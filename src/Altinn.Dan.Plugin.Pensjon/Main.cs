@@ -41,7 +41,7 @@ namespace Altinn.Dan.Plugin.Pensjon
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var evidenceHarvesterRequest = JsonConvert.DeserializeObject<EvidenceHarvesterRequest>(requestBody);
 
-            return await EvidenceSourceResponse.CreateResponse(null, () => GetEvidenceValuesPensjon(evidenceHarvesterRequest));
+            return await EvidenceSourceResponse.CreateResponse(req, () => GetEvidenceValuesPensjon(evidenceHarvesterRequest));
         }
 
         private async Task<List<EvidenceValue>> GetEvidenceValuesPensjon(EvidenceHarvesterRequest evidenceHarvesterRequest)
@@ -49,7 +49,7 @@ namespace Altinn.Dan.Plugin.Pensjon
             var content = await MakeRequest(_settings.NorskPensjonUrl, evidenceHarvesterRequest.SubjectParty);
 
             var ecb = new EvidenceBuilder(new Metadata(), "NorskPensjon");
-            ecb.AddEvidenceValue($"default", content, Metadata.SOURCE, false);
+            ecb.AddEvidenceValue("default", content, Metadata.SOURCE, false);
 
             return ecb.GetEvidenceValues();
         }
@@ -57,13 +57,15 @@ namespace Altinn.Dan.Plugin.Pensjon
         private async Task<string> MakeRequest(string target, Party subject) 
         {
             HttpResponseMessage result = null;
-            var requestBody = new NorskPensjonRequest();
-            requestBody.Fodselsnummer = subject.NorwegianSocialSecurityNumber;
+            var requestBody = new NorskPensjonRequest
+            {
+                Fodselsnummer = subject.NorwegianSocialSecurityNumber
+            };
+
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Post, target);
-                request.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8,
-                    "application/json");
+                request.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
                 result = await _client.SendAsync(request);
                 switch (result.StatusCode)
                 {

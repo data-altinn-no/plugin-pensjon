@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Altinn.Dan.Plugin.Pensjon.Config;
+using Dan.Common.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -19,14 +20,9 @@ namespace Altinn.Dan.Plugin.Pensjon
         private static Task Main(string[] args)
         {
             var host = new HostBuilder()
-                .ConfigureFunctionsWorkerDefaults()
+                .ConfigureDanPluginDefaults()
                 .ConfigureServices(services =>
                 {
-                    services.AddLogging();
-                    // See https://docs.microsoft.com/en-us/azure/azure-monitor/app/worker-service#using-application-insights-sdk-for-worker-services
-                    services.AddApplicationInsightsTelemetryWorkerService();
-                    services.AddHttpClient();
-
                     services.AddOptions<ApplicationSettings>()
                         .Configure<IConfiguration>((settings, configuration) => configuration.Bind(settings));
                     ApplicationSettings = services.BuildServiceProvider().GetRequiredService<IOptions<ApplicationSettings>>().Value;
@@ -42,13 +38,6 @@ namespace Altinn.Dan.Plugin.Pensjon
 
                             return handler;
                         });
-
-                    JsonConvert.DefaultSettings = () => new JsonSerializerSettings
-                    {
-                        DefaultValueHandling = DefaultValueHandling.Ignore,
-                        ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                        Converters = new List<JsonConverter>() { new StringEnumConverter() }
-                    };
                 })
                 .Build();
 
