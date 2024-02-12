@@ -49,6 +49,7 @@ namespace Altinn.Dan.Plugin.Pensjon
             var content = await MakeRequest(_settings.NorskPensjonUrl, evidenceHarvesterRequest.SubjectParty);
 
             var ecb = new EvidenceBuilder(new Metadata(), "NorskPensjon");
+            _logger.LogInformation(content);
             ecb.AddEvidenceValue("default", content, Metadata.SOURCE, false);
 
             return ecb.GetEvidenceValues();
