@@ -8,6 +8,6 @@ namespace Altinn.Dan.Plugin.Pensjon.Models
 {
     public class NorskPensjonRequest
     {
-        public string Fodselsnummer;
+        public string fodselsnummer;
     }
 }
