@@ -16,6 +16,7 @@ using Dan.Common;
 using Dan.Common.Exceptions;
 using Dan.Common.Models;
 using Dan.Common.Util;
+using System;
 
 namespace Altinn.Dan.Plugin.Pensjon
 {
@@ -50,12 +51,12 @@ namespace Altinn.Dan.Plugin.Pensjon
 
             var ecb = new EvidenceBuilder(new Metadata(), "NorskPensjon");
             //_logger.LogInformation(content);
-            ecb.AddEvidenceValue("default", content, Metadata.SOURCE, false);
+            ecb.AddEvidenceValue("default", JsonConvert.SerializeObject(content), Metadata.SOURCE, false);
 
             return ecb.GetEvidenceValues();
         }
 
-        private async Task<string> MakeRequest(string target, Party subject) 
+        private async Task<PensionModel> MakeRequest(string target, Party subject) 
         {
             HttpResponseMessage result = null;
             var requestBody = new NorskPensjonRequest
@@ -72,7 +73,8 @@ namespace Altinn.Dan.Plugin.Pensjon
                 {
                     case HttpStatusCode.OK:
                     {
-                        return await result.Content.ReadAsStringAsync();
+                        var tmp = JsonConvert.DeserializeObject<PensionResponse>(await result.Content.ReadAsStringAsync());
+                        return MapToOutputFormat(tmp);
                     }
                     case HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden:
                     {
@@ -101,6 +103,31 @@ namespace Altinn.Dan.Plugin.Pensjon
 
                 throw new EvidenceSourcePermanentServerException(Metadata.ERROR_CCR_UPSTREAM_ERROR, null, ex);
             }
+        }
+
+        private PensionModel MapToOutputFormat(PensionResponse tmp)
+        {
+            var result = new PensionModel()
+            {
+                InsurancesPolicies = new List<InsurancePolicy>()
+            };
+
+            foreach (var policy in tmp.poliser)
+            {
+                var newItem = new InsurancePolicy()
+                {
+                    Description = policy.produktinformasjon,
+                    DisclosureDate = policy.opplysningsdato,
+                    PensionScheme = policy.pensjonsinnretning.navn,
+                    ProductType = policy.produkttype,
+                    Reference = policy.produktinformasjon,
+                    Url = policy.url
+                };
+
+                result.InsurancesPolicies.Add(newItem);
+            }
+
+            return result;
         }
 
         [Function(Constants.EvidenceSourceMetadataFunctionName)]
