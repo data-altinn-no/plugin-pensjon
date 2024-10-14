@@ -120,7 +120,7 @@ namespace Altinn.Dan.Plugin.Pensjon
                     DisclosureDate = policy.opplysningsdato,
                     PensionScheme = policy.pensjonsinnretning.navn,
                     ProductType = policy.produkttype,
-                    Reference = policy.produktinformasjon,
+                    Reference = policy.referanse,
                     Url = policy.url
                 };
 
