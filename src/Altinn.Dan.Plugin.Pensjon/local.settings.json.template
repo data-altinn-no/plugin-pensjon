@@ -8,6 +8,7 @@
     "BreakerRetryWaitTime": "",
     "Certificate": "",
     "KeyVaultName": "",
-    "CertificateName": ""
+    "CertificateName": "",
+    "CustomCertificateHeaderName": ""
   }
 }

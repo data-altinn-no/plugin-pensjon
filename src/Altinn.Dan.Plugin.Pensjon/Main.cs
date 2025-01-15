@@ -17,6 +17,10 @@ using Dan.Common.Exceptions;
 using Dan.Common.Models;
 using Dan.Common.Util;
 using System;
+using System.Security.Policy;
+using System.Runtime.ConstrainedExecution;
+using System.Security.Cryptography.X509Certificates;
+using System.Linq;
 
 namespace Altinn.Dan.Plugin.Pensjon
 {
@@ -25,6 +29,8 @@ namespace Altinn.Dan.Plugin.Pensjon
         private ILogger _logger;
         private readonly HttpClient _client;
         private readonly ApplicationSettings _settings;
+
+        private const string CertificateHeaderName = "x-nadobe-cert";
 
         public Main(IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings)
         {
@@ -63,10 +69,17 @@ namespace Altinn.Dan.Plugin.Pensjon
             {
                 fodselsnummer = subject.NorwegianSocialSecurityNumber
             };
-
+           
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Post, target);
+
+                if (_settings.UseProxy)
+                {
+                    request.RequestUri = new Uri(string.Format(_settings.ProxyUrl, Uri.EscapeDataString(target.Replace("https://", "").Replace("http://", ""))));
+                    request.Headers.TryAddWithoutValidation(CertificateHeaderName, Convert.ToBase64String(_settings.Certificate.Export(X509ContentType.Pkcs12)));
+                }                
+
                 request.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
                 result = await _client.SendAsync(request);
                 switch (result.StatusCode)

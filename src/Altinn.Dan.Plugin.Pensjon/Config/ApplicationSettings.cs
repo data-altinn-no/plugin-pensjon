@@ -14,6 +14,13 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
         public string KeyVaultName { get; set; }
         public string CertificateName { get; set; }
 
+        //for production we need to use proxy
+        public bool UseProxy { get; set; }
+
+        public string ProxyUrl { get; set; }
+
+        public string CustomCertificateHeaderName { get; set; }
+
         public X509Certificate2 Certificate
         {
             get
@@ -23,7 +30,7 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
                     var secretClient = new SecretClient(new Uri($"https://{KeyVaultName}.vault.azure.net/"),
                         new DefaultAzureCredential());
                     var certWithPrivateKey = secretClient.GetSecret(CertificateName).Value;
-                    _cert = new X509Certificate2(Convert.FromBase64String(certWithPrivateKey.Value), string.Empty, X509KeyStorageFlags.MachineKeySet);
+                    _cert = new X509Certificate2(Convert.FromBase64String(certWithPrivateKey.Value), string.Empty, X509KeyStorageFlags.Exportable);
                 }
                 return _cert;
             }
