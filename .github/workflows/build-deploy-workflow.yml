@@ -13,10 +13,13 @@ jobs:
   permissions:
     actions: read
     contents: read
-  uses: data-altinn-no/deploy-actions/.github/workflows/dan-deploy-flow.yml@e9a1d62778d9d2f4e8c2245027fb2750fd230e0a
+    checks: write
+    pull-requests: write
+  uses: data-altinn-no/deploy-actions/.github/workflows/dan-deploy-flow.yml@61a7edd132ef73dbb446086d01ac0557dc28e258
   with:
     artifact_name: 'dan-plugin-pensjon' # Can be omitted, defaults to 'artifact'
     function_project_path: 'src/Altinn.Dan.Plugin.Pensjon'
+    dotnet_version: '10.0.x'
   secrets:
     function_app_name: ${{ secrets.FUNCTIONAPP_NAME }}
     publish_profile: ${{ secrets.AZURE_FUNCTION_PUBLISH_CREDS }}
