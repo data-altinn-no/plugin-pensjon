@@ -4,7 +4,6 @@ using Dan.Common.Enums;
 using Dan.Common.Interfaces;
 using Dan.Common.Models;
 using Newtonsoft.Json;
-using NJsonSchema;
 
 namespace Altinn.Dan.Plugin.Pensjon
 {
@@ -40,7 +39,7 @@ namespace Altinn.Dan.Plugin.Pensjon
                         {
                             EvidenceValueName = "default",
                             ValueType = EvidenceValueType.JsonSchema,
-                            JsonSchemaDefintion = JsonSchema.FromType<PensionModel>().ToJson(Formatting.Indented)
+                            JsonSchemaDefintion = EvidenceValue.SchemaFromObject<PensionModel>(Formatting.Indented)
                        },
                     }
                 }
