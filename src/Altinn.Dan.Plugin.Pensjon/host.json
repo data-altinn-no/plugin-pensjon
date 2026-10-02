@@ -5,16 +5,20 @@
             "dynamicThrottlesEnabled": false
         }
     },
+    "telemetryMode": "OpenTelemetry",
     "logging": {
-        "applicationInsights": {
-            "samplingSettings": {
-                "isEnabled": true,
-                "excludedTypes": "Request"
-            }
-        },
         "logLevel": {
             "default": "Information",
             "Microsoft": "Warning"
+        },
+        "OpenTelemetry": {
+            "logLevel": {
+                "default": "Information",
+                "Microsoft": "Warning"
+            },
+            "samplingSettings": {
+                "isEnabled": false
+            }
         }
     }
 }
