@@ -7,7 +7,9 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
 {
     public class ApplicationSettings
     {
+        private readonly object _certificateHeaderLock = new();
         private X509Certificate2 _cert;
+        private string _certificateHeaderValue;
         public string RedisConnectionString { get; set; }
         public TimeSpan BreakerRetryWaitTime { get; set; }
         public string NorskPensjonUrl { get; set; }
@@ -37,7 +39,29 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
 
             set
             {
-                _cert = value;
+                lock (_certificateHeaderLock)
+                {
+                    _cert = value;
+                    _certificateHeaderValue = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The certificate with its private key as it is sent to the proxy: a password-less PFX, base64 encoded.
+        ///
+        /// Exported once and then reused. A PFX export contains random salt, so exporting for every
+        /// request gives a different value each time, and the proxy only reuses its connections to
+        /// Norsk Pensjon for requests that carry exactly the same header value.
+        /// </summary>
+        public string CertificateHeaderValue
+        {
+            get
+            {
+                lock (_certificateHeaderLock)
+                {
+                    return _certificateHeaderValue ??= Convert.ToBase64String(Certificate.Export(X509ContentType.Pkcs12));
+                }
             }
         }
     }

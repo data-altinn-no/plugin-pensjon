@@ -77,7 +77,7 @@ namespace Altinn.Dan.Plugin.Pensjon
                 if (_settings.UseProxy)
                 {
                     request.RequestUri = new Uri(string.Format(_settings.ProxyUrl, Uri.EscapeDataString(target.Replace("https://", "").Replace("http://", ""))));
-                    request.Headers.TryAddWithoutValidation(CertificateHeaderName, Convert.ToBase64String(_settings.Certificate.Export(X509ContentType.Pkcs12)));
+                    request.Headers.TryAddWithoutValidation(CertificateHeaderName, _settings.CertificateHeaderValue);
                 }                
 
                 request.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
