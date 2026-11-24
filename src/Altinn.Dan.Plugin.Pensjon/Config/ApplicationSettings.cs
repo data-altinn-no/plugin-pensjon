@@ -69,7 +69,9 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
         /// </summary>
         public void LoadCertificate(string base64Pkcs12)
         {
-            var certificate = new X509Certificate2(Convert.FromBase64String(base64Pkcs12), string.Empty, X509KeyStorageFlags.Exportable);
+            // Reads a PFX and nothing else, and takes the certificate with the private key from it.
+            // Exportable, because a certificate that is set from outside is exported for the header.
+            var certificate = X509CertificateLoader.LoadPkcs12(Convert.FromBase64String(base64Pkcs12), string.Empty, X509KeyStorageFlags.Exportable);
 
             lock (_certificateHeaderLock)
             {

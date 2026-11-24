@@ -91,6 +91,18 @@ namespace Altinn.Dan.Plugin.Pensjon.Test
         }
 
         [TestMethod]
+        public void LoadCertificate_SecretThatIsNotAPfx_IsRefused()
+        {
+            // A certificate alone has no private key. The plugin must stop here, and not send
+            // the proxy a header it cannot use.
+            using var certificate = CreateCertificate("pensjon-test");
+            var certificateAlone = Convert.ToBase64String(certificate.RawData);
+            var settings = new ApplicationSettings();
+
+            Assert.Throws<CryptographicException>(() => settings.LoadCertificate(certificateAlone));
+        }
+
+        [TestMethod]
         public void CertificateHeaderValue_FromKeyVault_IsUnchangedAfterConfigurationIsBound()
         {
             // The binder reads and writes the properties. Writing back the certificate that is
