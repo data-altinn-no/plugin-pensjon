@@ -4,6 +4,7 @@ using Azure.Core.Serialization;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System.Collections.Generic;
@@ -26,11 +27,14 @@ namespace Altinn.Dan.Plugin.Pensjon
 {
     public class Main
     {
-        private ILogger _logger;
+        // Replaced with the logger of the function when a request comes in.
+        private ILogger _logger = NullLogger.Instance;
         private readonly HttpClient _client;
         private readonly ApplicationSettings _settings;
 
         private const string CertificateHeaderName = "x-nadobe-cert";
+        private const string ProxyErrorHeaderName = "X-Dan-Proxy-Error";
+        private const string ProxyKeyHeaderName = "x-functions-key";
 
         public Main(IHttpClientFactory httpClientFactory, IOptions<ApplicationSettings> settings)
         {
@@ -62,7 +66,8 @@ namespace Altinn.Dan.Plugin.Pensjon
             return ecb.GetEvidenceValues();
         }
 
-        private async Task<PensionModel> MakeRequest(string target, Party subject) 
+        // Internal so the tests can call it without a function host.
+        internal async Task<PensionModel> MakeRequest(string target, Party subject)
         {
             HttpResponseMessage result = null;
             var requestBody = new NorskPensjonRequest
@@ -78,7 +83,13 @@ namespace Altinn.Dan.Plugin.Pensjon
                 {
                     request.RequestUri = new Uri(string.Format(_settings.ProxyUrl, Uri.EscapeDataString(target.Replace("https://", "").Replace("http://", ""))));
                     request.Headers.TryAddWithoutValidation(CertificateHeaderName, _settings.CertificateHeaderValue);
-                }                
+
+                    // Without ProxyKey, the key is part of ProxyUrl.
+                    if (!string.IsNullOrEmpty(_settings.ProxyKey))
+                    {
+                        request.Headers.TryAddWithoutValidation(ProxyKeyHeaderName, _settings.ProxyKey);
+                    }
+                }
 
                 request.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
                 result = await _client.SendAsync(request);
@@ -98,6 +109,17 @@ namespace Altinn.Dan.Plugin.Pensjon
                     case HttpStatusCode.InternalServerError:
                     {
                         _logger.LogError($"Call to Norsk Pensjon failed (500 - internal server error)");
+
+                        throw new EvidenceSourceTransientException(Metadata.ERROR_CCR_UPSTREAM_ERROR);
+                    }
+                    case HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout:
+                    {
+                        // The proxy answers 502 when it cannot reach Norsk Pensjon and 504 when
+                        // Norsk Pensjon does not answer in time, and says which in a header of its
+                        // own. Without that header, the status code comes from Norsk Pensjon, or
+                        // from the proxy app itself: it answers 503 while it restarts.
+                        var proxyError = result.Headers.TryGetValues(ProxyErrorHeaderName, out var values) ? string.Join(",", values) : "none";
+                        _logger.LogError("Call to Norsk Pensjon failed ({StatusCode}), error from the proxy: {ProxyError}", (int)result.StatusCode, proxyError);
 
                         throw new EvidenceSourceTransientException(Metadata.ERROR_CCR_UPSTREAM_ERROR);
                     }
