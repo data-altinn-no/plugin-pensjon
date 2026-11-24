@@ -95,11 +95,13 @@ namespace Altinn.Dan.Plugin.Pensjon.Config
         {
             get
             {
-                // Loads the certificate from Key Vault if that has not been done, which also sets the value.
-                var certificate = Certificate;
-
                 lock (_certificateHeaderLock)
                 {
+                    // Read under the lock, so the certificate cannot be replaced between the read
+                    // and the export. Loads the certificate from Key Vault if that has not been
+                    // done, which also sets the value.
+                    var certificate = Certificate;
+
                     return _certificateHeaderValue ??= Convert.ToBase64String(certificate.Export(X509ContentType.Pkcs12));
                 }
             }
